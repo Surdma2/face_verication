@@ -169,3 +169,5 @@ async def recognize(image: dict = Body(...)):
 			return {"prediction": result, "message": "Try again"}
 	except Exception as err:
 		return {"prediction": "no prediction", "message": str(err)}
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=os.getenv("PORT", default=5000), log_level="info")
