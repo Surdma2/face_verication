@@ -81,6 +81,7 @@ async def read_root():
 					.then(response => response.json())
 					.then(result => {
 					$("#loading").hide();
+     					console.log(result);
 						if (result.prediction === 'Human') {
 							
 					console.log(result);
