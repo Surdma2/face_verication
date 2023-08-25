@@ -23,31 +23,81 @@ async def read_root():
     <html>
         <head>
             <title>Face Verification</title>
+                <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
         </head>
         <body>
-            <h1>Face Verification</h1>
-            <video id="video" width="640" height="480" autoplay></video>
-            <button id="recognize">Recognize</button>
-            <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+        <div class="container"> 
+        
+		      <div class="col">
+				 <h1>Face Verification</h1>
+			</div>
+				  
+			<div class="col">
+				 <video id="video" width="640" height="480" autoplay></video>
+			</div>
+				<iframe id="loading" src="https://media.tenor.com/zecVkmevzcIAAAAC/please-wait.gif" width="100" height="100" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>			
+			<div class="col">
+				 <button id="recognize" type="button" class="btn btn-lg btn-primary" >Recognize</button>
+			</div>
+			      <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+        </div>
+           
+           
+          
+      
+                <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+                
+             <script>
+				$(document).ready(function() {
+					// Hide the iframe on page load
+					$("#loading").hide();
+				});
+			</script>
+
             <script>
+    			
                 const video = document.getElementById('video');
                 const canvas = document.getElementById('canvas');
                 const recognizeButton = document.getElementById('recognize');
                 const constraints = { video: true };
+                
+                
 
-                recognizeButton.addEventListener('click', () => {
-                    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-                    const image = canvas.toDataURL('image/jpeg');
-                    fetch('/recognize', {
-                        method: 'POST',
-                        body: JSON.stringify({ image }),
-                        headers: { 'Content-Type': 'application/json' }
-                    })
-                    .then(response => response.json())
-                    .then(result => {
-                        alert(result.prediction);
-                    });
-                });
+				recognizeButton.addEventListener('click', () => {
+				$("#loading").show();
+					canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+					const image = canvas.toDataURL('image/jpeg');
+					fetch('/recognize', {
+						method: 'POST',
+						body: JSON.stringify({ image }),
+						headers: { 'Content-Type': 'application/json' }
+					})
+					.then(response => response.json())
+					.then(result => {
+					$("#loading").hide();
+						if (result.prediction === 'Human') {
+							
+					console.log(result);
+							alert('success');
+							// Redirect to another page here
+							// window.location.href = '/success';
+						} else {
+							alert('Try again');
+							// Keep the video feed active for another attempt
+							setupCamera();
+						}
+					}).catch((error) => {
+					$("#loading").hide();
+					console.log(error);
+					});
+				});
+
 
                 async function setupCamera() {
                     const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -72,16 +122,43 @@ def predict_image(image):
     # prediction = tf.nn.softmax(prediction)
     print(prediction)
     # prediction = np.argmax(prediction)
-    return "Human" if prediction < 0.05 else "Non-Human"
+    return "Human" if prediction < 0.02 else "Non-Human"
+    
+def save_img(img_bin):
+	import cloudinary
+          
+	cloudinary.config( 
+	  cloud_name = "dcysfieol", 
+	  api_key = "851589193853581", 
+	  api_secret = "J2FZWZLTigmfpt9VEozTm7tbzFE" 
+	)
+	return cloudinary.utils.cloudinary_url(img_bin, width=100, height=150, crop="fill")
+	
+import cloudinary
+from cloudinary.uploader import upload
+
+# Configure Cloudinary with your credentials
+cloudinary.config( 
+	  cloud_name = "dcysfieol", 
+	  api_key = "851589193853581", 
+	  api_secret = "J2FZWZLTigmfpt9VEozTm7tbzFE" 
+	)
+
+def upload_to_cloudinary(image_path):
+    response = upload(image_path)
+    return response['secure_url']  # Return the URL of the uploaded image
+
+	
 
 @app.post("/recognize")
 async def recognize(image: dict):
     image_data = image['image'].split(",")[1].encode('utf-8')
     result = predict_image(io.BytesIO(base64.b64decode(image_data)))
     if result == "Human":
-        with open("saved_image.jpg", "wb") as f:
+        with open("captured_image.jpg", "wb") as f:
             f.write(base64.b64decode(image_data))
+        cloudinary_url = upload_to_cloudinary("captured_image.jpg")
+        print(cloudinary_url)
+        return {"prediction": result, "message": "Image saved", "cloudinary_url": cloudinary_url}
     else:
-        pass
-    return {"prediction": result}
-
+        return {"prediction": result, "message": "Try again"}
