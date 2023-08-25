@@ -9,6 +9,7 @@ import tensorflow as tf
 from tensorflow.keras.preprocessing.image import img_to_array
 from tensorflow.keras.applications.nasnet import preprocess_input
 import base64
+from fastapi import FastAPI, File, UploadFile,Body
 
 app = FastAPI()
 
