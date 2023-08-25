@@ -75,7 +75,7 @@ async def read_root():
 					const image = canvas.toDataURL('image/jpeg');
 					fetch('/recognize', {
 						method: 'POST',
-						body: JSON.stringify({ image }),
+						body: JSON.stringify({ "image":image }),
 						headers: { 'Content-Type': 'application/json' }
 					})
 					.then(response => response.json())
@@ -94,7 +94,9 @@ async def read_root():
 						}
 					}).catch((error) => {
 					$("#loading").hide();
+					console.log("showing error");
 					console.log(error);
+					alert(error);
 					});
 				});
 
@@ -152,13 +154,16 @@ def upload_to_cloudinary(image_path):
 
 @app.post("/recognize")
 async def recognize(image: dict):
-    image_data = image['image'].split(",")[1].encode('utf-8')
-    result = predict_image(io.BytesIO(base64.b64decode(image_data)))
-    if result == "Human":
-        with open("captured_image.jpg", "wb") as f:
-            f.write(base64.b64decode(image_data))
-        cloudinary_url = upload_to_cloudinary("captured_image.jpg")
-        print(cloudinary_url)
-        return {"prediction": result, "message": "Image saved", "cloudinary_url": cloudinary_url}
-    else:
-        return {"prediction": result, "message": "Try again"}
+	try:
+		image_data = image['image'].split(",")[1].encode('utf-8')
+		result = predict_image(io.BytesIO(base64.b64decode(image_data)))
+		if result == "Human":
+			with open("captured_image.jpg", "wb") as f:
+			    f.write(base64.b64decode(image_data))
+			cloudinary_url = upload_to_cloudinary("captured_image.jpg")
+			print(cloudinary_url)
+			return {"prediction": result, "message": "Image saved", "cloudinary_url": cloudinary_url}
+		else:
+			return {"prediction": result, "message": "Try again"}
+	except Exception as err:
+		return {"prediction": "no prediction", "message": str(err)}
