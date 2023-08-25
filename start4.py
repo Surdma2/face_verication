@@ -13,7 +13,7 @@ import base64
 app = FastAPI()
 
 # Load TensorFlow model
-model = tf.keras.models.load_model('./last_face_model.h5', compile=False)
+model = tf.keras.models.load_model('last_face_model.h5', compile=False)
 
 # app.mount("/static", StaticFiles(directory="static"), name="static")
 
