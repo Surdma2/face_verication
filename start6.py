@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -15,24 +16,6 @@ app = FastAPI()
 # Load TensorFlow model
 model = tf.keras.models.load_model('last_face_model.h5', compile=False)
 
-# app.mount("/static", StaticFiles(directory="static"), name="static")
-
-
-import cloudinary
-from cloudinary.uploader import upload
-
-# Configure Cloudinary with your credentials
-cloudinary.config( 
-	  cloud_name = "dcysfieol", 
-	  api_key = "851589193853581", 
-	  api_secret = "J2FZWZLTigmfpt9VEozTm7tbzFE" 
-	)
-
-def upload_to_cloudinary(image_path):
-    response = upload(image_path)
-    return response['secure_url']  # Return the URL of the uploaded image
-
-
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
     return """
@@ -46,11 +29,10 @@ async def read_root():
             <button id="recognize">Recognize</button>
             <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
             <script>
-				const video = document.getElementById('video');
+                const video = document.getElementById('video');
                 const canvas = document.getElementById('canvas');
                 const recognizeButton = document.getElementById('recognize');
                 const constraints = { video: true };
-
                 recognizeButton.addEventListener('click', () => {
                     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
                     const image = canvas.toDataURL('image/jpeg');
@@ -61,21 +43,14 @@ async def read_root():
                     })
                     .then(response => response.json())
                     .then(result => {
-                        if (result.prediction === "Human") {
-                            alert("Face Recognized as Human!");
-                            // window.location.href = '/success';  // Redirect to success page
-                        } else {
-                            alert("Not Recognized as Human. Try again.");
-                        }
+                        alert(result.prediction);
                     });
                 });
-
                 async function setupCamera() {
                     const stream = await navigator.mediaDevices.getUserMedia(constraints);
                     video.srcObject = stream;
                     await video.play();
                 }
-
                 setupCamera();
             </script>
         </body>
@@ -100,10 +75,8 @@ async def recognize(image: dict):
     image_data = image['image'].split(",")[1].encode('utf-8')
     result = predict_image(io.BytesIO(base64.b64decode(image_data)))
     if result == "Human":
-        with open("captured_image.jpg", "wb") as f:
+        with open("saved_image.jpg", "wb") as f:
             f.write(base64.b64decode(image_data))
-        cloudinary_url = upload_to_cloudinary("captured_image.jpg")
-        print(cloudinary_url)
-        return {"prediction": result, "message": "Image saved", "cloudinary_url": cloudinary_url}
     else:
-        return {"prediction": result, "message": "Try again"}
+        pass
+    return {"prediction": result}
